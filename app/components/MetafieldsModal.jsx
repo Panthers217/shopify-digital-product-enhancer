@@ -1,4 +1,5 @@
 import { useFetcher } from "react-router";
+import PropTypes from "prop-types";
 import { Modal, Form, FormLayout, Text, TextField, Banner } from "@shopify/polaris";
 
 export default function MetafieldsModal({ 
@@ -75,3 +76,15 @@ export default function MetafieldsModal({
     </Modal>
   );
 }
+
+MetafieldsModal.propTypes = {
+  active: PropTypes.bool.isRequired,
+  product: PropTypes.object,
+  downloadUrl: PropTypes.string.isRequired,
+  license: PropTypes.string.isRequired,
+  urlError: PropTypes.string.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onDownloadUrlChange: PropTypes.func.isRequired,
+  onLicenseChange: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+};

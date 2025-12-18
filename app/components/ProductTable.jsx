@@ -1,4 +1,5 @@
 import { useFetcher } from "react-router";
+import PropTypes from "prop-types";
 import { 
   IndexTable, 
   Thumbnail, 
@@ -43,7 +44,7 @@ export default function ProductTable({
         heading="No products found"
         image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
       >
-        <p>Try adjusting your search to find what you're looking for.</p>
+        <p>Try adjusting your search to find what you&apos;re looking for.</p>
       </EmptyState>
     );
   }
@@ -151,3 +152,17 @@ export default function ProductTable({
     </IndexTable>
   );
 }
+
+ProductTable.propTypes = {
+  products: PropTypes.array.isRequired,
+  resourceName: PropTypes.object.isRequired,
+  selectedResources: PropTypes.array.isRequired,
+  allResourcesSelected: PropTypes.bool.isRequired,
+  handleSelectionChange: PropTypes.func.isRequired,
+  promotedBulkActions: PropTypes.array.isRequired,
+  bulkProcessing: PropTypes.bool.isRequired,
+  onMarkAsDigital: PropTypes.func.isRequired,
+  onOpenImageModal: PropTypes.func.isRequired,
+  onOpenMetafieldsModal: PropTypes.func.isRequired,
+  onOpenDeleteModal: PropTypes.func.isRequired,
+};

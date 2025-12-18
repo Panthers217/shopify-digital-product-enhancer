@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { BlockStack, TextField, ChoiceList } from "@shopify/polaris";
 
 export default function ProductFilters({ searchQuery, setSearchQuery, digitalFilter, setDigitalFilter }) {
@@ -26,3 +27,10 @@ export default function ProductFilters({ searchQuery, setSearchQuery, digitalFil
     </BlockStack>
   );
 }
+
+ProductFilters.propTypes = {
+  searchQuery: PropTypes.string.isRequired,
+  setSearchQuery: PropTypes.func.isRequired,
+  digitalFilter: PropTypes.array.isRequired,
+  setDigitalFilter: PropTypes.func.isRequired,
+};

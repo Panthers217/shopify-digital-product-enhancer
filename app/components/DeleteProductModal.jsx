@@ -1,4 +1,5 @@
 import { useFetcher } from "react-router";
+import PropTypes from "prop-types";
 import { Modal, BlockStack, Text, Banner } from "@shopify/polaris";
 
 export default function DeleteProductModal({ 
@@ -42,3 +43,10 @@ export default function DeleteProductModal({
     </Modal>
   );
 }
+
+DeleteProductModal.propTypes = {
+  active: PropTypes.bool.isRequired,
+  product: PropTypes.object,
+  onClose: PropTypes.func.isRequired,
+  onConfirm: PropTypes.func.isRequired,
+};

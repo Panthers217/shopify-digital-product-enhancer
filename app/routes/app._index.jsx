@@ -325,7 +325,7 @@ export const action = async ({ request }) => {
 
   // Add an image to the newly created product
   const imageUrl = `https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-product-${Math.floor(Math.random() * 6) + 1}_large.png`;
-  const imageResponse = await admin.graphql(
+  await admin.graphql(
     `#graphql
       mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
         productCreateMedia(productId: $productId, media: $media) {
@@ -444,12 +444,6 @@ export default function Index() {
 
   const isCreatingProduct =
     fetcher.state === "submitting" && fetcher.formMethod === "POST";
-
-  const handleProductClick = (productId) => {
-    shopify.intents.invoke?.("edit:shopify/Product", {
-      value: productId,
-    });
-  };
 
   const generateProduct = () => fetcher.submit({}, { method: "POST" });
 

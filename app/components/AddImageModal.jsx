@@ -1,4 +1,5 @@
 import { useFetcher } from "react-router";
+import PropTypes from "prop-types";
 import { Modal, Form, FormLayout, Text, TextField, Banner } from "@shopify/polaris";
 
 export default function AddImageModal({ 
@@ -76,3 +77,15 @@ export default function AddImageModal({
     </Modal>
   );
 }
+
+AddImageModal.propTypes = {
+  active: PropTypes.bool.isRequired,
+  product: PropTypes.object,
+  imageUrl: PropTypes.string.isRequired,
+  imageAlt: PropTypes.string.isRequired,
+  imageUrlError: PropTypes.string.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onImageUrlChange: PropTypes.func.isRequired,
+  onImageAltChange: PropTypes.func.isRequired,
+  onSave: PropTypes.func.isRequired,
+};

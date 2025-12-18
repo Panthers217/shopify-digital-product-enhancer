@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { Banner, Text, ProgressBar, InlineStack } from "@shopify/polaris";
 
 export default function BulkProgressBanner({ bulkProgress, bulkResults }) {
@@ -29,3 +30,14 @@ export default function BulkProgressBanner({ bulkProgress, bulkResults }) {
     </div>
   );
 }
+
+BulkProgressBanner.propTypes = {
+  bulkProgress: PropTypes.shape({
+    current: PropTypes.number.isRequired,
+    total: PropTypes.number.isRequired,
+  }).isRequired,
+  bulkResults: PropTypes.shape({
+    success: PropTypes.number.isRequired,
+    failed: PropTypes.number.isRequired,
+  }).isRequired,
+};
