@@ -1,25 +1,62 @@
 # Digital Product Enhancer
 
-A Shopify embedded app for managing digital products at scale. Built to streamline workflows for merchants selling downloadable content, this app provides bulk operations, metadata management, and advanced filtering capabilities.
+A production-pattern Shopify embedded app that helps merchants manage digital products at scale — tagging, metafield management, image assignment, and bulk operations, all from a single admin dashboard.
+
+> **Portfolio note:** This project demonstrates end-to-end Shopify app development using the modern React Router v7 stack, the Shopify Admin GraphQL API, and the full Polaris design system. It intentionally covers patterns that appear frequently in real Shopify agency and platform-team work.
+
+## What It Does
+
+Merchants selling downloadable products (ebooks, software, templates, presets) need to tag products, store download links, and manage licenses — tasks Shopify's native admin does not streamline. This app solves that with a focused product management workspace.
 
 ## Features
 
-- **Product Dashboard** - View and manage up to 20 products with real-time data from Shopify Admin GraphQL API
-- **Bulk Operations** - Mark multiple products as digital with sequential processing and progress tracking
-- **Smart Filtering** - Filter products by digital status (show all, digital only, hide digital) with live search
-- **Metadata Management** - Store download URLs and license information using custom metafields
-- **Image Management** - Add product images via external URLs with alt text support
-- **Product Actions** - Delete products with confirmation modal and safety warnings
-- **Digital Badges** - Visual indicators for products tagged as digital
+| Feature | Details |
+|---------|---------|
+| **Product Dashboard** | Loads products with images, tags, and metafields via GraphQL |
+| **Bulk Digital Tagging** | Marks multiple products as digital sequentially with live progress |
+| **Smart Filtering** | Filter by digital status + live title search, client-side with `useMemo` |
+| **Metafield Editor** | Stores `download_url` and `license` under the `digital` namespace |
+| **Image Management** | Attaches images using `productCreateMedia` mutation |
+| **Safe Deletion** | Confirmation modal before `productDelete` mutation fires |
+| **Toast Feedback** | App Bridge toast notifications on every action success or error |
+| **Embedded Auth** | Full Shopify OAuth + session persistence via Prisma |
 
 ## Tech Stack
 
-- **Frontend**: React 18 with React Router v7 (Remix architecture)
-- **UI Framework**: Shopify Polaris (full React component library)
-- **API**: Shopify Admin GraphQL API (October25)
-- **Database**: Prisma ORM with SQLite
-- **Authentication**: Shopify App Bridge + OAuth
-- **Dev Tools**: Shopify CLI, Vite, Docker (Codespaces)
+| Layer | Technology |
+|-------|-----------|
+| Framework | React Router v7 (loader/action SSR pattern) |
+| UI | Shopify Polaris v13 (React component library) |
+| Embedded Context | Shopify App Bridge v4 |
+| API | Shopify Admin GraphQL API |
+| Database | Prisma ORM + SQLite (session storage) |
+| Auth | `@shopify/shopify-app-react-router` OAuth flow |
+| Build | Vite, TypeScript, ESLint |
+| Dev Environment | Shopify CLI, Docker/Codespaces |
+
+## Architecture Overview
+
+For a detailed explanation of how the app is structured — including the server/client data flow, GraphQL layer, authentication, and component composition — see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+### Quick data flow summary
+
+```
+Browser request
+  → React Router loader (server-side)
+    → authenticate.admin() verifies Shopify session
+      → admin.graphql() fetches product data
+        → loader returns JSON to React
+          → Page renders with Polaris components
+
+User action (button click / form)
+  → useFetcher.submit() (client-side)
+    → React Router action (server-side)
+      → authenticate.admin() re-verifies session
+        → admin.graphql() mutation runs
+          → action returns result JSON
+            → useEffect detects fetcher.data
+              → shopify.toast.show() notifies user
+```
 
 ## Architecture
 
@@ -134,7 +171,17 @@ export const action = async ({ request }) => {
 
 ## Screenshots
 
-*Coming soon - Dashboard, Bulk Operations, Metadata Modal*
+> Screenshots or a short screen recording of the dashboard, bulk operations flow, and metadata modal would go here. Recommended tool: [Loom](https://loom.com) for a 60-second walkthrough GIF.
+
+## Key Engineering Decisions
+
+**Sequential bulk processing** — Rather than firing all GraphQL mutations in parallel, the bulk tag operation processes products one at a time. This avoids Shopify API rate limit errors (bucket throttling) and keeps the UI progress bar accurate.
+
+**useFetcher over full navigation** — Actions use `useFetcher` instead of standard form navigation so modals can stay open, progress can be shown inline, and the user does not lose filter/search state on mutation.
+
+**Dedicated `digital` metafield namespace** — All custom metadata (download URLs, license keys) lives under `namespace: "digital"` to keep metafields isolated from other apps and easy to query or clean up.
+
+**Polaris-first UI** — The Shopify Polaris component library is used for all primary UI rather than custom CSS, so the app looks native inside the Shopify Admin and passes Shopify's app review accessibility standards.
 
 ## Development Notes
 
