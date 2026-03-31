@@ -6,6 +6,8 @@ EXPOSE 3000
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV PORT=3000
+ENV DATABASE_URL=file:./dev.sqlite
 
 COPY package.json package-lock.json* ./
 
@@ -15,4 +17,4 @@ COPY . .
 
 RUN npm run build
 
-CMD ["npm", "run", "docker-start"]
+CMD ["sh", "-c", "HOST=0.0.0.0 npm run docker-start"]
