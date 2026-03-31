@@ -1,0 +1,27 @@
+# Production Shopify app config (Render)
+# Keep this linked to your production app in Partners.
+
+client_id = "08983eaa5f9064508e28cffb32b9c18e"
+name = "Digital Product Enhancer"
+application_url = "https://shopify-digital-product-enhancer.onrender.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = false
+
+[webhooks]
+api_version = "2026-01"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+[access_scopes]
+scopes = "write_products"
+
+[auth]
+redirect_urls = [ "https://shopify-digital-product-enhancer.onrender.com/auth/callback" ]
