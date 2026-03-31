@@ -2,7 +2,7 @@
 
 client_id = "08983eaa5f9064508e28cffb32b9c18e"
 name = "Digital Product Enhancer\r"
-application_url = "https://example.com"
+application_url = "https://shopify-digital-product-enhancer.onrender.com"
 embedded = true
 
 [build]
@@ -25,4 +25,4 @@ api_version = "2026-01"
 scopes = "write_products"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://shopify-digital-product-enhancer.onrender.com" ]
