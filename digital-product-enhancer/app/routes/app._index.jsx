@@ -66,8 +66,290 @@ export const action = async ({ request }) => {
     const { admin } = await authenticate.admin(request);
     const formData = await request.formData();
     const action = formData.get("action");
+
+    const createProductMedia = async (productId, imageUrl, imageAlt) => {
+      if (!imageUrl) {
+        return null;
+      }
+
+      const mediaResponse = await admin.graphql(
+        `#graphql
+          mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
+            productCreateMedia(productId: $productId, media: $media) {
+              mediaUserErrors {
+                field
+                message
+              }
+            }
+          }
+        `,
+        {
+          variables: {
+            productId,
+            media: [
+              {
+                originalSource: imageUrl,
+                alt: imageAlt || null,
+                mediaContentType: "IMAGE",
+              },
+            ],
+          },
+        },
+      );
+
+      const mediaJson = await mediaResponse.json();
+      return mediaJson.data?.productCreateMedia?.mediaUserErrors ?? [];
+    };
+
+    const updateProductMetafields = async (productId, metafields) => {
+      if (!metafields.length) {
+        return null;
+      }
+
+      const metafieldsResponse = await admin.graphql(
+        `#graphql
+          mutation productUpdate($input: ProductInput!) {
+            productUpdate(input: $input) {
+              userErrors {
+                field
+                message
+              }
+            }
+          }
+        `,
+        {
+          variables: {
+            input: {
+              id: productId,
+              metafields,
+            },
+          },
+        },
+      );
+
+      const metafieldsJson = await metafieldsResponse.json();
+      return metafieldsJson.data?.productUpdate?.userErrors ?? [];
+    };
     
     console.log("Action received:", action);
+
+    if (action === "seedDemoCatalog") {
+      const demoProducts = [
+        {
+          title: "Portrait Lightroom Presets",
+          productType: "Digital Download",
+          tags: ["digital-product", "no-shipping", "photo", "demo-seed"],
+          imageUrl: "https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-product-1_large.png",
+          metafields: [
+            {
+              namespace: "digital",
+              key: "download_url",
+              value: "https://example.com/downloads/portrait-lightroom-presets.zip",
+              type: "single_line_text_field",
+            },
+            {
+              namespace: "digital",
+              key: "license",
+              value: "Single commercial use license",
+              type: "single_line_text_field",
+            },
+          ],
+        },
+        {
+          title: "Freelance Contract Bundle",
+          productType: "Template Pack",
+          tags: ["digital-product", "no-shipping", "legal", "demo-seed"],
+          imageUrl: "https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-product-2_large.png",
+          metafields: [
+            {
+              namespace: "digital",
+              key: "download_url",
+              value: "https://example.com/downloads/freelance-contract-bundle.zip",
+              type: "single_line_text_field",
+            },
+            {
+              namespace: "digital",
+              key: "license",
+              value: "Editable template license",
+              type: "single_line_text_field",
+            },
+          ],
+        },
+        {
+          title: "Figma Landing Page Kit",
+          productType: "UI Kit",
+          tags: ["digital-product", "figma", "demo-seed"],
+          imageUrl: "https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-product-3_large.png",
+          metafields: [
+            {
+              namespace: "digital",
+              key: "download_url",
+              value: "https://example.com/downloads/figma-landing-page-kit.zip",
+              type: "single_line_text_field",
+            },
+          ],
+        },
+        {
+          title: "Podcast Intro Audio Pack",
+          productType: "Audio Asset",
+          tags: ["audio", "new-demo", "demo-seed"],
+          imageUrl: "",
+          metafields: [],
+        },
+      ];
+
+      const suffix = new Date().toISOString().slice(0, 10);
+      const seedResults = [];
+
+      for (const demoProduct of demoProducts) {
+        const productResponse = await admin.graphql(
+          `#graphql
+            mutation seedDemoProduct($product: ProductCreateInput!) {
+              productCreate(product: $product) {
+                product {
+                  id
+                  title
+                }
+                userErrors {
+                  field
+                  message
+                }
+              }
+            }
+          `,
+          {
+            variables: {
+              product: {
+                title: `${demoProduct.title} ${suffix}`,
+                productType: demoProduct.productType,
+                tags: demoProduct.tags,
+                status: "ACTIVE",
+              },
+            },
+          },
+        );
+
+        const productJson = await productResponse.json();
+        const productErrors = productJson.data?.productCreate?.userErrors ?? [];
+
+        if (productErrors.length > 0) {
+          seedResults.push({
+            title: demoProduct.title,
+            success: false,
+            error: productErrors[0].message,
+          });
+          continue;
+        }
+
+        const createdProduct = productJson.data?.productCreate?.product;
+
+        const mediaErrors = await createProductMedia(
+          createdProduct.id,
+          demoProduct.imageUrl,
+          demoProduct.title,
+        );
+
+        if (mediaErrors?.length > 0) {
+          seedResults.push({
+            title: demoProduct.title,
+            success: false,
+            error: mediaErrors[0].message,
+          });
+          continue;
+        }
+
+        const metafieldErrors = await updateProductMetafields(
+          createdProduct.id,
+          demoProduct.metafields,
+        );
+
+        if (metafieldErrors?.length > 0) {
+          seedResults.push({
+            title: demoProduct.title,
+            success: false,
+            error: metafieldErrors[0].message,
+          });
+          continue;
+        }
+
+        seedResults.push({
+          title: demoProduct.title,
+          success: true,
+        });
+      }
+
+      const successCount = seedResults.filter((result) => result.success).length;
+      const failedCount = seedResults.length - successCount;
+
+      return {
+        success: failedCount === 0,
+        partialSuccess: successCount > 0 && failedCount > 0,
+        action: "seedDemoCatalog",
+        seededCount: successCount,
+        failedCount,
+        errors: seedResults.filter((result) => !result.success),
+      };
+    }
+
+    // Handle "Clear Demo Catalog" action
+    if (action === "clearDemoCatalog") {
+      // Query all products tagged with demo-seed (up to 50 at a time)
+      const queryResponse = await admin.graphql(
+        `#graphql
+          query getDemoProducts {
+            products(first: 50, query: "tag:demo-seed") {
+              edges {
+                node {
+                  id
+                  title
+                }
+              }
+            }
+          }
+        `,
+      );
+
+      const queryJson = await queryResponse.json();
+      const demoNodes = queryJson.data?.products?.edges?.map((e) => e.node) ?? [];
+
+      if (demoNodes.length === 0) {
+        return { success: true, action: "clearDemoCatalog", deletedCount: 0 };
+      }
+
+      let deletedCount = 0;
+      let failedCount = 0;
+
+      for (const product of demoNodes) {
+        const deleteResponse = await admin.graphql(
+          `#graphql
+            mutation deleteDemo($input: ProductDeleteInput!) {
+              productDelete(input: $input) {
+                deletedProductId
+                userErrors { field message }
+              }
+            }
+          `,
+          { variables: { input: { id: product.id } } },
+        );
+
+        const deleteJson = await deleteResponse.json();
+        const deleteErrors = deleteJson.data?.productDelete?.userErrors ?? [];
+
+        if (deleteErrors.length > 0) {
+          failedCount++;
+        } else {
+          deletedCount++;
+        }
+      }
+
+      return {
+        success: failedCount === 0,
+        partialSuccess: deletedCount > 0 && failedCount > 0,
+        action: "clearDemoCatalog",
+        deletedCount,
+        failedCount,
+      };
+    }
 
     // Handle "Delete Product" action
     if (action === "deleteProduct") {
@@ -506,6 +788,25 @@ export default function Index() {
   useEffect(() => {
     if (fetcher.data?.success && fetcher.data?.action === "markDigital") {
       shopify.toast.show(`Updated ${fetcher.data.productTitle}`);
+    } else if (fetcher.data?.success && fetcher.data?.action === "seedDemoCatalog") {
+      shopify.toast.show(`Seeded ${fetcher.data.seededCount} demo products`);
+      window.location.reload();
+    } else if (fetcher.data?.partialSuccess && fetcher.data?.action === "seedDemoCatalog") {
+      shopify.toast.show(
+        `Seeded ${fetcher.data.seededCount} demo products, ${fetcher.data.failedCount} failed`,
+        { isError: true },
+      );
+      window.location.reload();
+    } else if (fetcher.data?.success && fetcher.data?.action === "clearDemoCatalog") {
+      const count = fetcher.data.deletedCount;
+      shopify.toast.show(count === 0 ? "No demo products found" : `Cleared ${count} demo products`);
+      window.location.reload();
+    } else if (fetcher.data?.partialSuccess && fetcher.data?.action === "clearDemoCatalog") {
+      shopify.toast.show(
+        `Cleared ${fetcher.data.deletedCount} demo products, ${fetcher.data.failedCount} failed`,
+        { isError: true },
+      );
+      window.location.reload();
     } else if (fetcher.data?.success && fetcher.data?.action === "updateMetafields") {
       shopify.toast.show(`Updated metadata for ${fetcher.data.productTitle}`);
       setMetafieldsModalActive(false);
@@ -531,9 +832,31 @@ export default function Index() {
   const isCreatingProduct =
     fetcher.state === "submitting" && fetcher.formMethod === "POST";
 
+  const isSeedingCatalog =
+    fetcher.state === "submitting" &&
+    fetcher.formMethod === "POST" &&
+    fetcher.formData?.get("action") === "seedDemoCatalog";
+
+  const isClearingCatalog =
+    fetcher.state === "submitting" &&
+    fetcher.formMethod === "POST" &&
+    fetcher.formData?.get("action") === "clearDemoCatalog";
+
   const generateProduct = () => {
     const formData = new FormData();
     formData.append("action", "generateProduct");
+    fetcher.submit(formData, { method: "POST" });
+  };
+
+  const seedDemoCatalog = () => {
+    const formData = new FormData();
+    formData.append("action", "seedDemoCatalog");
+    fetcher.submit(formData, { method: "POST" });
+  };
+
+  const clearDemoCatalog = () => {
+    const formData = new FormData();
+    formData.append("action", "clearDemoCatalog");
     fetcher.submit(formData, { method: "POST" });
   };
 
@@ -744,6 +1067,21 @@ export default function Index() {
         onAction: generateProduct,
         loading: isCreatingProduct,
       }}
+      secondaryActions={[
+        {
+          content: 'Seed Demo Catalog',
+          onAction: seedDemoCatalog,
+          loading: isSeedingCatalog,
+          disabled: isCreatingProduct || isClearingCatalog,
+        },
+        {
+          content: 'Clear Demo Catalog',
+          onAction: clearDemoCatalog,
+          loading: isClearingCatalog,
+          disabled: isCreatingProduct || isSeedingCatalog,
+          destructive: true,
+        },
+      ]}
     >
       <div className={styles.pageShell}>
       <div className={styles.pageEntrance}>
