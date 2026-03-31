@@ -7,7 +7,6 @@ import {
   Text,
   EmptyState,
   Button,
-  ButtonGroup,
   InlineStack,
 } from "@shopify/polaris";
 
@@ -84,47 +83,61 @@ export default function ProductTable({
         {product.tags.length > 0 ? product.tags.join(", ") : "—"}
       </IndexTable.Cell>
       <IndexTable.Cell>
-        <ButtonGroup>
-          <Button
-            size="slim"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMarkAsDigital(product);
-            }}
-            loading={isMarkingDigital(product.id)}
-            disabled={isAlreadyDigital(product.tags)}
-          >
-            {isAlreadyDigital(product.tags) ? "Digital" : "Mark as Digital"}
-          </Button>
-          <Button
-            size="slim"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenImageModal(product);
-            }}
-          >
-            Add Image
-          </Button>
-          <Button
-            size="slim"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenMetafieldsModal(product);
-            }}
-          >
-            Metadata
-          </Button>
-          <Button
-            size="slim"
-            tone="critical"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenDeleteModal(product);
-            }}
-          >
-            Delete
-          </Button>
-        </ButtonGroup>
+        <div style={{ padding: "4px 0" }}>
+          <InlineStack gap="200" wrap>
+            <div style={{ minWidth: "132px", flex: "1 1 132px" }}>
+              <Button
+                size="slim"
+                fullWidth
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMarkAsDigital(product);
+                }}
+                loading={isMarkingDigital(product.id)}
+                disabled={isAlreadyDigital(product.tags)}
+              >
+                {isAlreadyDigital(product.tags) ? "Digital" : "Mark as Digital"}
+              </Button>
+            </div>
+            <div style={{ minWidth: "110px", flex: "1 1 110px" }}>
+              <Button
+                size="slim"
+                fullWidth
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenImageModal(product);
+                }}
+              >
+                Add Image
+              </Button>
+            </div>
+            <div style={{ minWidth: "110px", flex: "1 1 110px" }}>
+              <Button
+                size="slim"
+                fullWidth
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenMetafieldsModal(product);
+                }}
+              >
+                Metadata
+              </Button>
+            </div>
+            <div style={{ minWidth: "96px", flex: "1 1 96px" }}>
+              <Button
+                size="slim"
+                tone="critical"
+                fullWidth
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenDeleteModal(product);
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </InlineStack>
+        </div>
       </IndexTable.Cell>
     </IndexTable.Row>
   ));

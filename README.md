@@ -1,10 +1,37 @@
-# Shopify App Template - React Router
+# Digital Product Enhancer — App Source
 
-This is a template for building a [Shopify app](https://shopify.dev/docs/apps/getting-started) using [React Router](https://reactrouter.com/).  It was forked from the [Shopify Remix app template](https://github.com/Shopify/shopify-app-template-remix) and converted to React Router.
+This directory contains the Shopify embedded app source code.
 
-Rather than cloning this repo, follow the [Quick Start steps](https://github.com/Shopify/shopify-app-template-react-router#quick-start).
+For full project documentation, setup instructions, and architecture details see the root:
 
-Visit the [`shopify.dev` documentation](https://shopify.dev/docs/api/shopify-app-react-router) for more details on the React Router app package.
+- [README.md](../README.md) — Project overview, features, and setup guide
+- [ARCHITECTURE.md](../ARCHITECTURE.md) — Detailed explanation of data flow, authentication, GraphQL layer, and component composition
+
+## Quick Dev Start
+
+```bash
+npm install
+npm run dev       # starts Shopify CLI tunnel + Vite dev server
+```
+
+Follow the CLI prompts to authenticate with your Shopify Partner account and select a development store.
+
+## Key Directories
+
+```
+app/
+├── routes/            # File-based routes (React Router flatRoutes)
+│   ├── app.jsx        # Layout — Polaris AppProvider + Outlet
+│   ├── app._index.jsx # Main product dashboard (loader + action)
+│   └── app.additional.jsx
+├── components/        # Shared UI components
+├── styles/            # CSS Modules for route-level styles
+├── shopify.server.js  # Shopify API + session config
+└── db.server.js       # Prisma client singleton
+prisma/
+└── schema.prisma      # Session table definition
+```
+
 
 ## Upgrading from Remix
 

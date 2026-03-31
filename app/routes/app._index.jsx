@@ -3,7 +3,15 @@ import { useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
-import { Page, Card, Banner, Text, useIndexResourceState } from "@shopify/polaris";
+import {
+  Page,
+  Card,
+  Banner,
+  Text,
+  Badge,
+  InlineStack,
+  useIndexResourceState,
+} from "@shopify/polaris";
 
 // Import components
 import ProductFilters from "../components/ProductFilters";
@@ -12,6 +20,7 @@ import ProductTable from "../components/ProductTable";
 import DeleteProductModal from "../components/DeleteProductModal";
 import AddImageModal from "../components/AddImageModal";
 import MetafieldsModal from "../components/MetafieldsModal";
+import styles from "../styles/app-index.module.css";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
@@ -53,12 +62,15 @@ export const loader = async ({ request }) => {
 };
 
 export const action = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
-  const formData = await request.formData();
-  const action = formData.get("action");
+  try {
+    const { admin } = await authenticate.admin(request);
+    const formData = await request.formData();
+    const action = formData.get("action");
+    
+    console.log("Action received:", action);
 
-  // Handle "Delete Product" action
-  if (action === "deleteProduct") {
+    // Handle "Delete Product" action
+    if (action === "deleteProduct") {
     const productId = formData.get("productId");
     const productTitle = formData.get("productTitle");
 
@@ -266,102 +278,172 @@ export const action = async ({ request }) => {
   }
 
   // Handle "Generate Product" action (existing)
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
-  const response = await admin.graphql(
-    `#graphql
-      mutation populateProduct($product: ProductCreateInput!) {
-        productCreate(product: $product) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
+  if (!action || action === "generateProduct") {
+    console.log("Starting product generation...");
+    const color = ["Red", "Orange", "Yellow", "Green"][
+      Math.floor(Math.random() * 4)
+    ];
+    
+    console.log(`Creating ${color} Snowboard...`);
+    
+    // Step 1: Create product
+    const response = await admin.graphql(
+      `#graphql
+        mutation populateProduct($product: ProductCreateInput!) {
+          productCreate(product: $product) {
+            product {
+              id
+              title
+              handle
+              status
+              variants(first: 10) {
+                edges {
+                  node {
+                    id
+                    price
+                    barcode
+                    createdAt
+                  }
                 }
               }
             }
-          }
-        }
-      }`,
-    {
-      variables: {
-        product: {
-          title: `${color} Snowboard`,
-        },
-      },
-    },
-  );
-  const responseJson = await response.json();
-  const product = responseJson.data.productCreate.product;
-  const variantId = product.variants.edges[0].node.id;
-  const variantResponse = await admin.graphql(
-    `#graphql
-    mutation shopifyReactRouterTemplateUpdateVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-        productVariants {
-          id
-          price
-          barcode
-          createdAt
-        }
-      }
-    }`,
-    {
-      variables: {
-        productId: product.id,
-        variants: [{ id: variantId, price: "100.00" }],
-      },
-    },
-  );
-  const variantResponseJson = await variantResponse.json();
-
-  // Add an image to the newly created product
-  const imageUrl = `https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-product-${Math.floor(Math.random() * 6) + 1}_large.png`;
-  await admin.graphql(
-    `#graphql
-      mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
-        productCreateMedia(productId: $productId, media: $media) {
-          media {
-            ... on MediaImage {
-              id
-              image {
-                url
-              }
+            userErrors {
+              field
+              message
             }
           }
-          mediaUserErrors {
+        }`,
+      {
+        variables: {
+          product: {
+            title: `${color} Snowboard`,
+          },
+        },
+      },
+    );
+    const responseJson = await response.json();
+    
+    console.log("Product creation response:", JSON.stringify(responseJson, null, 2));
+    
+    // Check for errors in product creation
+    if (responseJson.data?.productCreate?.userErrors?.length > 0) {
+      console.error("Product creation errors:", responseJson.data.productCreate.userErrors);
+      return {
+        error: responseJson.data.productCreate.userErrors[0].message,
+      };
+    }
+    
+    const product = responseJson.data?.productCreate?.product;
+    if (!product) {
+      return {
+        error: "Failed to create product",
+      };
+    }
+    
+    const variant = product.variants?.edges?.[0]?.node;
+    if (!variant) {
+      return {
+        error: "Failed to create product variant",
+      };
+    }
+    
+    // Step 2: Update variant price
+    const variantResponse = await admin.graphql(
+      `#graphql
+      mutation shopifyReactRouterTemplateUpdateVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+        productVariantsBulkUpdate(productId: $productId, variants: $variants) {
+          productVariants {
+            id
+            price
+            barcode
+            createdAt
+          }
+          userErrors {
             field
             message
           }
         }
       }`,
-    {
-      variables: {
-        productId: product.id,
-        media: [
-          {
-            originalSource: imageUrl,
-            alt: `${color} Snowboard`,
-            mediaContentType: "IMAGE",
-          },
-        ],
+      {
+        variables: {
+          productId: product.id,
+          variants: [{ id: variant.id, price: "100.00" }],
+        },
       },
-    },
-  );
+    );
+    const variantResponseJson = await variantResponse.json();
+    
+    // Check for errors in variant update
+    if (variantResponseJson.data?.productVariantsBulkUpdate?.userErrors?.length > 0) {
+      return {
+        error: variantResponseJson.data.productVariantsBulkUpdate.userErrors[0].message,
+      };
+    }
+    
+    // Step 3: Add an image to the newly created product
+    const imageUrl = `https://cdn.shopify.com/s/files/1/0533/2089/files/placeholder-images-product-${Math.floor(Math.random() * 6) + 1}_large.png`;
+    const imageResponse = await admin.graphql(
+      `#graphql
+        mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
+          productCreateMedia(productId: $productId, media: $media) {
+            media {
+              ... on MediaImage {
+                id
+                image {
+                  url
+                }
+              }
+            }
+            mediaUserErrors {
+              field
+              message
+            }
+          }
+        }`,
+      {
+        variables: {
+          productId: product.id,
+          media: [
+            {
+              originalSource: imageUrl,
+              alt: `${color} Snowboard`,
+              mediaContentType: "IMAGE",
+            },
+          ],
+        },
+      },
+    );
+    const imageResponseJson = await imageResponse.json();
+    
+    // Check for errors in image creation (non-fatal, just log)
+    if (imageResponseJson.data?.productCreateMedia?.mediaUserErrors?.length > 0) {
+      console.warn("Failed to add image:", imageResponseJson.data.productCreateMedia.mediaUserErrors[0].message);
+    }
 
+    return {
+      success: true,
+      product: product,
+      variant: variantResponseJson.data.productVariantsBulkUpdate.productVariants,
+      action: "generateProduct",
+    };
+  }
+
+  // If we get here, unknown action
   return {
-    product: responseJson.data.productCreate.product,
-    variant: variantResponseJson.data.productVariantsBulkUpdate.productVariants,
-    action: "generateProduct",
+    error: "Unknown action",
   };
+  } catch (error) {
+    console.error("Error in action:", error);
+    console.error("Error details:", {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      response: error.response,
+    });
+    return {
+      error: error.message || "An unexpected error occurred",
+    };
+  }
 };
 
 export default function Index() {
@@ -437,6 +519,10 @@ export default function Index() {
       setImageModalActive(false);
       // Reload to show new image
       window.location.reload();
+    } else if (fetcher.data?.success && fetcher.data?.action === "generateProduct") {
+      shopify.toast.show(`Successfully created ${fetcher.data.product?.title || "test product"}`);
+      // Reload to show new product
+      window.location.reload();
     } else if (fetcher.data?.error) {
       shopify.toast.show(fetcher.data.error, { isError: true });
     }
@@ -445,7 +531,11 @@ export default function Index() {
   const isCreatingProduct =
     fetcher.state === "submitting" && fetcher.formMethod === "POST";
 
-  const generateProduct = () => fetcher.submit({}, { method: "POST" });
+  const generateProduct = () => {
+    const formData = new FormData();
+    formData.append("action", "generateProduct");
+    fetcher.submit(formData, { method: "POST" });
+  };
 
   const markAsDigital = (product) => {
     const formData = new FormData();
@@ -655,18 +745,45 @@ export default function Index() {
         loading: isCreatingProduct,
       }}
     >
+      <div className={styles.pageShell}>
+      <div className={styles.pageEntrance}>
+      <div className={styles.cardSurface}>
       <Card>
+        <div className={`${styles.headerSection} ${styles.animatedSection}`}>
+          <Text as="h2" variant="headingMd">
+            Digital Product Workflow
+          </Text>
+          <div className={styles.subtleText}>
+            <Text as="p" variant="bodyMd" tone="subdued">
+              Manage product tags, images, and metafields in one clean workspace.
+            </Text>
+          </div>
+          <div className={styles.metricsRow}>
+            <InlineStack gap="200" wrap>
+              <Badge tone="info">{products.length} total products</Badge>
+              <Badge tone="success">
+                {products.filter((p) => p.tags.includes("digital-product")).length} digital
+              </Badge>
+              <Badge>
+                {products.filter((p) => p.featuredImage?.url).length} with images
+              </Badge>
+            </InlineStack>
+          </div>
+        </div>
+
         {/* Bulk Processing Progress */}
         {bulkProcessing && (
-          <BulkProgressBanner 
-            bulkProgress={bulkProgress} 
-            bulkResults={bulkResults} 
-          />
+          <div className={styles.animatedSection}>
+            <BulkProgressBanner 
+              bulkProgress={bulkProgress} 
+              bulkResults={bulkResults} 
+            />
+          </div>
         )}
 
         {/* Selection Info Banner */}
         {selectedResources.length > 0 && !bulkProcessing && (
-          <div style={{ padding: '16px', borderBottom: '1px solid #e1e3e5' }}>
+          <div className={`${styles.selectionBanner} ${styles.animatedSection}`}>
             <Banner>
               <Text as="p" variant="bodyMd">
                 {selectedResources.length} product{selectedResources.length !== 1 ? 's' : ''} selected
@@ -675,7 +792,10 @@ export default function Index() {
           </div>
         )}
 
-        <div style={{ padding: '16px' }}>
+        <div className={`${styles.filtersWrap} ${styles.animatedSection}`}>
+          <Text as="h3" variant="headingSm">
+            Find and Filter
+          </Text>
           <ProductFilters 
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
@@ -684,22 +804,24 @@ export default function Index() {
           />
         </div>
 
-        <ProductTable
-          products={filteredProducts}
-          resourceName={resourceName}
-          selectedResources={selectedResources}
-          allResourcesSelected={allResourcesSelected}
-          handleSelectionChange={handleSelectionChange}
-          promotedBulkActions={promotedBulkActions}
-          bulkProcessing={bulkProcessing}
-          onMarkAsDigital={markAsDigital}
-          onOpenImageModal={openImageModal}
-          onOpenMetafieldsModal={openMetafieldsModal}
-          onOpenDeleteModal={openDeleteModal}
-        />
+        <div className={`${styles.tableWrap} ${styles.animatedSection}`}>
+          <ProductTable
+            products={filteredProducts}
+            resourceName={resourceName}
+            selectedResources={selectedResources}
+            allResourcesSelected={allResourcesSelected}
+            handleSelectionChange={handleSelectionChange}
+            promotedBulkActions={promotedBulkActions}
+            bulkProcessing={bulkProcessing}
+            onMarkAsDigital={markAsDigital}
+            onOpenImageModal={openImageModal}
+            onOpenMetafieldsModal={openMetafieldsModal}
+            onOpenDeleteModal={openDeleteModal}
+          />
+        </div>
 
         {filteredProducts.length > 0 && (
-          <div style={{ padding: '16px', borderTop: '1px solid #e1e3e5' }}>
+          <div className={styles.footerMeta}>
             <Text as="p" variant="bodySm" tone="subdued">
               Showing {filteredProducts.length} of {products.length} product
               {products.length !== 1 ? "s" : ""}
@@ -711,6 +833,9 @@ export default function Index() {
           </div>
         )}
       </Card>
+      </div>
+      </div>
+      </div>
 
       {/* Modals */}
       <DeleteProductModal
@@ -746,6 +871,8 @@ export default function Index() {
     </Page>
   );
 }
+
+export const ErrorBoundary = boundary.error;
 
 export const headers = (headersArgs) => {
   return boundary.headers(headersArgs);

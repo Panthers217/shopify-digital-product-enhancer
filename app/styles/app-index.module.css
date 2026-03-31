@@ -1,0 +1,96 @@
+.pageShell {
+  padding: 6px;
+  border-radius: 16px;
+  background: linear-gradient(140deg, #eef4ff 0%, #f4f8f3 50%, #ffffff 100%);
+}
+
+.pageEntrance {
+  animation: pageFadeUp 420ms ease-out;
+}
+
+.cardSurface {
+  border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(25, 35, 55, 0.13);
+  overflow: hidden;
+}
+
+.headerSection {
+  padding: 20px 20px 8px;
+  background: linear-gradient(120deg, #f6f8fb 0%, #ffffff 70%);
+  border-bottom: 1px solid #e9ecef;
+}
+
+.subtleText {
+  margin-top: 6px;
+}
+
+.metricsRow {
+  margin-top: 12px;
+}
+
+.animatedSection {
+  animation: sectionFadeUp 360ms ease-out;
+}
+
+.selectionBanner {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e1e3e5;
+}
+
+.filtersWrap {
+  padding: 16px 20px 20px;
+  background: #ffffff;
+  border-top: 1px solid #edf1f4;
+  border-bottom: 1px solid #edf1f4;
+}
+
+.tableWrap {
+  padding: 6px 10px 10px;
+}
+
+.footerMeta {
+  padding: 16px 20px;
+  border-top: 1px solid #e1e3e5;
+  background: #fafbfc;
+}
+
+@keyframes pageFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sectionFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .headerSection {
+    padding: 16px;
+  }
+
+  .filtersWrap,
+  .selectionBanner,
+  .footerMeta {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .tableWrap {
+    padding: 0;
+  }
+}

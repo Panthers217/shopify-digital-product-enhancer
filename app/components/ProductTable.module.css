@@ -1,0 +1,13 @@
+.actionCell {
+  padding: 4px 0;
+}
+
+.actionButton {
+  min-width: 118px;
+}
+
+@media (max-width: 768px) {
+  .actionButton {
+    min-width: 100%;
+  }
+}
