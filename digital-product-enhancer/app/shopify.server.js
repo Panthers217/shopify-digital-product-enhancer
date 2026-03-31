@@ -10,15 +10,21 @@ import prisma from "./db.server";
 const requiredEnvVars = [
   "SHOPIFY_API_KEY",
   "SHOPIFY_API_SECRET",
-  "SHOPIFY_APP_URL",
   "SCOPES",
 ];
 
+const resolvedAppUrl =
+  process.env.SHOPIFY_APP_URL?.trim() || process.env.RENDER_EXTERNAL_URL?.trim() || "";
+
 const missingEnvVars = requiredEnvVars.filter((name) => !process.env[name]?.trim());
 
+if (!resolvedAppUrl) {
+  missingEnvVars.push("SHOPIFY_APP_URL or RENDER_EXTERNAL_URL");
+}
+
 if (missingEnvVars.length > 0) {
-  const renderHint = missingEnvVars.includes("SHOPIFY_APP_URL")
-    ? "Render hint: set SHOPIFY_APP_URL to your public service URL (for example, https://your-service.onrender.com) in Render Dashboard -> Environment."
+  const renderHint = missingEnvVars.includes("SHOPIFY_APP_URL or RENDER_EXTERNAL_URL")
+    ? "Render hint: either set SHOPIFY_APP_URL manually (for example, https://your-service.onrender.com) or make sure RENDER_EXTERNAL_URL is available for this web service."
     : "Set the missing variables in your deployment environment settings.";
 
   throw new Error(
@@ -27,10 +33,10 @@ if (missingEnvVars.length > 0) {
 }
 
 try {
-  new URL(process.env.SHOPIFY_APP_URL);
+  new URL(resolvedAppUrl);
 } catch {
   throw new Error(
-    "[Startup config error] SHOPIFY_APP_URL must be a valid absolute URL (for example, https://your-service.onrender.com).",
+    "[Startup config error] App URL must be a valid absolute URL via SHOPIFY_APP_URL or RENDER_EXTERNAL_URL (for example, https://your-service.onrender.com).",
   );
 }
 
@@ -41,7 +47,7 @@ const shopify = shopifyApp({
   apiSecretKey: process.env.SHOPIFY_API_SECRET,
   apiVersion: ApiVersion.October25,
   scopes,
-  appUrl: process.env.SHOPIFY_APP_URL,
+  appUrl: resolvedAppUrl,
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
