@@ -7,12 +7,41 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 
+const requiredEnvVars = [
+  "SHOPIFY_API_KEY",
+  "SHOPIFY_API_SECRET",
+  "SHOPIFY_APP_URL",
+  "SCOPES",
+];
+
+const missingEnvVars = requiredEnvVars.filter((name) => !process.env[name]?.trim());
+
+if (missingEnvVars.length > 0) {
+  const renderHint = missingEnvVars.includes("SHOPIFY_APP_URL")
+    ? "Render hint: set SHOPIFY_APP_URL to your public service URL (for example, https://your-service.onrender.com) in Render Dashboard -> Environment."
+    : "Set the missing variables in your deployment environment settings.";
+
+  throw new Error(
+    `[Startup config error] Missing required environment variable(s): ${missingEnvVars.join(", ")}. ${renderHint}`,
+  );
+}
+
+try {
+  new URL(process.env.SHOPIFY_APP_URL);
+} catch {
+  throw new Error(
+    "[Startup config error] SHOPIFY_APP_URL must be a valid absolute URL (for example, https://your-service.onrender.com).",
+  );
+}
+
+const scopes = process.env.SCOPES.split(",").map((scope) => scope.trim()).filter(Boolean);
+
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
-  apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
+  apiSecretKey: process.env.SHOPIFY_API_SECRET,
   apiVersion: ApiVersion.October25,
-  scopes: process.env.SCOPES?.split(","),
-  appUrl: process.env.SHOPIFY_APP_URL || "",
+  scopes,
+  appUrl: process.env.SHOPIFY_APP_URL,
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
