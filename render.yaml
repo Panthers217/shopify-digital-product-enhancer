@@ -24,7 +24,8 @@ services:
         sync: false
       - key: SCOPES
         value: write_products
-headers:
-  - path: /*
-    name: Content-Security-Policy
-    value: frame-ancestors https://rouse-commerce-lab.myshopify.com https://admin.shopify.com;
+
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: frame-ancestors https://rouse-commerce-lab.myshopify.com https://admin.shopify.com;
