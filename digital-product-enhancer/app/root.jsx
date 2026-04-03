@@ -1,4 +1,12 @@
-import { Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
+import {
+  Links,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useRouteError,
+} from "react-router";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import "@shopify/polaris/build/esm/styles.css";
 
 export default function App() {
@@ -23,3 +31,12 @@ export default function App() {
     </html>
   );
 }
+
+// Preserve Shopify auth/embedded response behavior for document-level errors.
+export function ErrorBoundary() {
+  return boundary.error(useRouteError());
+}
+
+export const headers = (headersArgs) => {
+  return boundary.headers(headersArgs);
+};
